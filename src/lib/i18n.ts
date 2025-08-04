@@ -1,9 +1,10 @@
-// image-translator-new/src/lib/i18n.ts
 'use client';
 
 import * as React from 'react';
 import i18n, { TFunction, i18n as I18nType } from 'i18next';
 import { initReactI18next } from 'react-i18next';
+// **【关键修改】从 middleware 导入常量**
+import { SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE } from '../middleware';
 
 interface I18nContextValue {
   t: TFunction<'translation', undefined>;
@@ -18,6 +19,8 @@ const defaultI18nValue: I18nContextValue = {
 };
 
 const I18nContext = React.createContext<I18nContextValue>(defaultI18nValue);
+
+// **【关键修改】删除此处的常量定义**
 
 i18n
   .use(initReactI18next)
@@ -66,8 +69,10 @@ i18n
         }
       }
     },
-    lng: 'en',
-    fallbackLng: 'en',
+    // **【关键修改】使用导入的常量**
+    lng: DEFAULT_LANGUAGE,
+    fallbackLng: DEFAULT_LANGUAGE,
+    supportedLngs: SUPPORTED_LANGUAGES, // 明确告知 i18next 支持的语言
     interpolation: {
       escapeValue: false
     }
