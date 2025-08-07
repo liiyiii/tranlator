@@ -4,7 +4,6 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { fabric } from 'fabric';
 import { useEditorContext } from '@/contexts/EditorContext';
 import { Area } from '@/types';
-import ContextMenu from '@/components/ContextMenu';
 
 interface ImageCanvasProps {
   onNewAreaSelect: (bbox: [number, number, number, number]) => void;
@@ -17,17 +16,13 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ onNewAreaSelect }) => {
     backgroundImageUrl,
     setFabricCanvasInstance,
     editorMode,
+    zoomToFit,
+    setZoom,
   } = useEditorContext();
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
   const isProgrammaticSelection = useRef(false);
-  const [contextMenu, setContextMenu] = useState<{
-    show: boolean;
-    x: number;
-    y: number;
-    menuItems: any[];
-  }>({ show: false, x: 0, y: 0, menuItems: [] });
 
   const handleSelection = useCallback((e: fabric.IEvent) => {
     if (isProgrammaticSelection.current) {
@@ -65,12 +60,12 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ onNewAreaSelect }) => {
     // --- Complete mouse event listeners (your original logic) ---
     canvas.on('mouse:wheel', function (opt: fabric.IEvent<WheelEvent>) {
       const delta = opt.e.deltaY;
-      let zoom = canvas.getZoom();
-      zoom *= 0.999 ** delta;
-      if (zoom > 20) zoom = 20;
-      if (zoom < 0.1) zoom = 0.1;
+      let newZoom = canvas.getZoom() * (0.999 ** delta);
+      if (newZoom > 20) newZoom = 20;
+      if (newZoom < 0.1) newZoom = 0.1;
       const point = new fabric.Point(opt.e.offsetX, opt.e.offsetY);
-      canvas.zoomToPoint(point, zoom);
+      canvas.zoomToPoint(point, newZoom);
+      setZoom(newZoom); // Keep context in sync
       opt.e.preventDefault();
       opt.e.stopPropagation();
     });
@@ -271,7 +266,10 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ onNewAreaSelect }) => {
             img.scaleToHeight(canvas.height);
         }
 
-        currentCanvas.setBackgroundImage(img, currentCanvas.renderAll.bind(currentCanvas), {
+        currentCanvas.setBackgroundImage(img, () => {
+            currentCanvas.renderAll();
+            zoomToFit();
+        }, {
           selectable: false, evented: false, originX: 'left', originY: 'top',
         });
       }, { crossOrigin: 'anonymous' });
@@ -347,7 +345,7 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ onNewAreaSelect }) => {
         fabricCanvasRef.current = null;
       }
     };
-  }, [backgroundImageUrl, areas, onNewAreaSelect, setAreas, setFabricCanvasInstance, handleSelection, editorMode]);
+  }, [backgroundImageUrl, areas, onNewAreaSelect, setAreas, setFabricCanvasInstance, handleSelection, editorMode, setSelectedAreaIds, setZoom, zoomToFit, selectedAreaIds]);
 
   useEffect(() => {
     const canvas = fabricCanvasRef.current;
@@ -381,50 +379,11 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ onNewAreaSelect }) => {
     }
   }, [selectedAreaIds]);
 
-  const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const fabricCanvas = fabricCanvasRef.current;
-    if (!fabricCanvas) return;
-
-    const pointer = fabricCanvas.getPointer(e.nativeEvent);
-    const target = fabricCanvas.findTarget(e.nativeEvent, false);
-
-    if (target && target.data?.id && selectedAreaIds.includes(target.data.id)) {
-      const bringToFront = () => {
-        const newAreas = [...areas];
-        const selected = newAreas.filter(a => selectedAreaIds.includes(a.id));
-        const others = newAreas.filter(a => !selectedAreaIds.includes(a.id));
-        setAreas([...others, ...selected]);
-      };
-
-      const sendToBack = () => {
-        const newAreas = [...areas];
-        const selected = newAreas.filter(a => selectedAreaIds.includes(a.id));
-        const others = newAreas.filter(a => !selectedAreaIds.includes(a.id));
-        setAreas([...selected, ...others]);
-      };
-
-      setContextMenu({
-        show: true,
-        x: e.clientX,
-        y: e.clientY,
-        menuItems: [
-          { label: 'Bring to front', action: bringToFront },
-          { label: 'Send to back', action: sendToBack },
-        ],
-      });
-    } else {
-      setContextMenu({ show: false, x: 0, y: 0, menuItems: [] });
-    }
-  };
-
   return (
     <div
       className="w-full h-full aspect-video mx-auto shadow-2xl rounded-md overflow-hidden border border-gray-700"
-      onContextMenu={handleContextMenu}
     >
       <canvas ref={canvasRef} className="w-full h-full" />
-      <ContextMenu {...contextMenu} onClose={() => setContextMenu({ ...contextMenu, show: false })} />
     </div>
   );
 };

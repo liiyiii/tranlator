@@ -4,33 +4,34 @@ import React from 'react';
 import { useEditorContext } from '@/contexts/EditorContext';
 import { MousePointer, Hand, PlusSquare } from 'lucide-react';
 
-const EditorToolbar: React.FC = () => {
+const ModeSwitcher: React.FC = () => {
   const { editorMode, setEditorMode } = useEditorContext();
 
   const buttons = [
-    { mode: 'select', icon: MousePointer, label: 'Select' },
-    { mode: 'pan', icon: Hand, label: 'Pan' },
-    { mode: 'create', icon: PlusSquare, label: 'Create Area' },
+    { mode: 'select', icon: MousePointer, label: 'Select & Edit' },
+    { mode: 'pan', icon: Hand, label: 'Pan Canvas' },
+    { mode: 'create', icon: PlusSquare, label: 'Create Text Area' },
   ];
 
   return (
-    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-gray-800 p-2 rounded-lg shadow-lg flex items-center space-x-2">
+    <div className="bg-gray-700 rounded-lg p-1 flex justify-between space-x-1">
       {buttons.map(({ mode, icon: Icon, label }) => (
         <button
           key={mode}
           onClick={() => setEditorMode(mode as any)}
-          className={`p-2 rounded-md transition-colors ${
+          className={`w-full p-2 rounded-md transition-colors text-sm flex flex-col items-center space-y-1 ${
             editorMode === mode
               ? 'bg-brand-blue text-white'
-              : 'text-gray-400 hover:bg-gray-700 hover:text-white'
+              : 'text-gray-400 hover:bg-gray-600 hover:text-white'
           }`}
           title={label}
         >
           <Icon size={20} />
+          <span>{label.split(' ')[0]}</span>
         </button>
       ))}
     </div>
   );
 };
 
-export default EditorToolbar;
+export default ModeSwitcher;

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { TranslationsProvider } from "@/components/TranslationsProvider";
+import { EditorProvider } from "@/contexts/EditorContext"; // Import EditorProvider
 import { SUPPORTED_LANGUAGES } from "@/middleware"; 
 import Header from "@/components/Header"; 
 import Footer from "@/components/Footer"; 
@@ -28,14 +29,18 @@ export default function RootLayout({
     // lang 属性直接从 params 中获取
     <html lang={params.lang}>
       <body>
-        <TranslationsProvider locale={params.lang}> 
-          <div className="flex flex-col min-h-screen bg-background text-foreground">
-            <Header /> 
-            <main className="flex-grow container mx-auto px-4 py-8">
-              {children}
-            </main>
-            <Footer /> 
-          </div>
+        <TranslationsProvider locale={params.lang}>
+          <EditorProvider> {/* Wrap with EditorProvider */}
+            <div className="flex flex-col min-h-screen bg-background text-foreground">
+              <Header />
+              <main className="flex-grow container mx-auto px-4 py-8">
+                {children}
+              </main>
+              <Footer />
+            </div>
+          </EditorProvider>
         </TranslationsProvider>
       </body>
-    </html>)}
+    </html>
+  );
+}
