@@ -3,6 +3,7 @@
 import React from 'react';
 import { useEditorContext } from '@/contexts/EditorContext';
 import { Download } from 'lucide-react';
+import FloatingPanel from '@/components/FloatingPanel';
 
 // Helper function to trigger file download
 const downloadFile = (filename: string, content: string, mimeType: string) => {
@@ -77,8 +78,7 @@ const ExportPro: React.FC = () => {
 
 
   return (
-    <div className="mt-8 p-6 bg-gray-800 rounded-xl shadow-xl w-full max-w-lg">
-      <h3 className="text-xl font-semibold text-gray-100 mb-4 text-center">Export Options</h3>
+    <FloatingPanel title="Export Options" initialPosition={{ x: 20, y: 400 }}>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <button
           onClick={handleExportJSON}
@@ -102,7 +102,7 @@ const ExportPro: React.FC = () => {
           <Download size={18} className="mr-2" /> PDF
         </button>
       </div>
-    </div>
+    </FloatingPanel>
   );
 };
 

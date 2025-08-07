@@ -1,1 +1,5 @@
 node_modules
+/python/helper/
+from-ocr-image-merge.py
+to_ocr_pptx.py
+translate_service.py

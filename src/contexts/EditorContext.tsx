@@ -7,8 +7,8 @@ import { Area } from '@/types';
 interface EditorContextType {
   areas: Area[];
   setAreas: (newAreasOrCallback: SetStateAction<Area[]>, storeInHistory?: boolean) => void; 
-  selectedAreaId: string | null;
-  setSelectedAreaId: Dispatch<SetStateAction<string | null>>;
+  selectedAreaIds: string[];
+  setSelectedAreaIds: Dispatch<SetStateAction<string[]>>;
   backgroundImageUrl: string | null; 
   setBackgroundImageUrl: Dispatch<SetStateAction<string | null>>;
   originalImageFile: File | null; 
@@ -21,6 +21,10 @@ interface EditorContextType {
   canRedo: boolean;
   triggerJPGExport: () => string | null;
   setFabricCanvasInstance: (canvas: fabric.Canvas | null) => void;
+  sourceLang: string;
+  targetLang: string;
+  editorMode: 'pan' | 'select' | 'create';
+  setEditorMode: Dispatch<SetStateAction<'pan' | 'select' | 'create'>>;
 }
 
 const EditorContext = createContext<EditorContextType | undefined>(undefined);
@@ -29,10 +33,11 @@ let fabricInstance: fabric.Canvas | null = null;
 
 export const EditorProvider: React.FC<{ children: ReactNode }> = ({ children }: { children: ReactNode }) => {
   const [areasInternal, setAreasInternal] = useState<Area[]>([]); 
-  const [selectedAreaId, setSelectedAreaId] = useState<string | null>(null);
+  const [selectedAreaIds, setSelectedAreaIds] = useState<string[]>([]);
   const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(null);
   const [originalImageFile, setOriginalImageFile] = useState<File | null>(null);
   const [estimatedFontSize, setEstimatedFontSize] = useState<number | null>(16);
+  const [editorMode, setEditorMode] = useState<'pan' | 'select' | 'create'>('select');
   
   const [history, setHistory] = useState<Area[][]>([[]]);
   const [historyIndex, setHistoryIndex] = useState<number>(0);
@@ -95,7 +100,7 @@ export const EditorProvider: React.FC<{ children: ReactNode }> = ({ children }: 
     <EditorContext.Provider value={{
       areas: areasInternal,
       setAreas,
-      selectedAreaId, setSelectedAreaId,
+      selectedAreaIds, setSelectedAreaIds,
       backgroundImageUrl, setBackgroundImageUrl,
       originalImageFile, setOriginalImageFile,
       estimatedFontSize, setEstimatedFontSize,
@@ -111,7 +116,11 @@ export const EditorProvider: React.FC<{ children: ReactNode }> = ({ children }: 
       },
       setFabricCanvasInstance: (canvas: fabric.Canvas | null) => {
         fabricInstance = canvas;
-      }
+      },
+      sourceLang: 'en',
+      targetLang: 'zh',
+      editorMode,
+      setEditorMode,
     }}>
       {children}
     </EditorContext.Provider>

@@ -1,29 +1,35 @@
-// image-translator-new/src/app/[lang]/tool/page.tsx
-'use client'; 
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import ImageCanvas from '@/components/ImageCanvas'; 
-import { mockIPCService, mockPartialScanIPCService, OCRBlock as IPC_OCRBlock } from '@/services/ipcService'; 
+import ImageCanvas from '@/components/ImageCanvas';
+import { ipcService, OCRBlock as IPC_OCRBlock } from '@/services/ipcService';
 import { EditorProvider, useEditorContext } from '@/contexts/EditorContext';
-import { Area } from '@/types'; 
-import { UploadCloud } from 'lucide-react'; 
+import { Area } from '@/types';
+import { UploadCloud } from 'lucide-react';
 import TextEditor from '@/components/TextEditor';
 import ExportPro from '@/components/ExportPro';
+import EditorToolbar from '@/components/EditorToolbar';
+
+// Extend the front-end OCRBlock type to match the back-end
+interface BackendOCRBlock extends IPC_OCRBlock {
+  color?: string;
+  backgroundColor?: string;
+}
 
 function ToolPageContent() {
   const { t } = useTranslation();
-  const { 
-    areas, setAreas, 
-    backgroundImageUrl, setBackgroundImageUrl, 
-    originalImageFile, 
+  const {
+    areas, setAreas,
+    backgroundImageUrl, setBackgroundImageUrl,
+    originalImageFile,
     setOriginalImageFile,
-    estimatedFontSize, 
+    estimatedFontSize,
     setEstimatedFontSize,
-    setSelectedAreaId
+    setSelectedAreaIds
   } = useEditorContext();
-  
-  const [isLoading, setIsLoading] = useState(false); 
+
+  const [isLoading, setIsLoading] = useState(false);
   const [isPartialScanning, setIsPartialScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -34,26 +40,27 @@ function ToolPageContent() {
     setFileName(file.name);
     setError(null);
     setIsLoading(true);
-    setAreas([]); 
+    setAreas([]);
     setBackgroundImageUrl(null);
 
     try {
-      const response = await mockIPCService(file); 
+      const response = await ipcService.full(file);
+      console.log('Full OCR Response:', response);
       if (response.error) {
         setError(response.error);
       } else {
-        setBackgroundImageUrl(response.imagePath); 
+        setBackgroundImageUrl(`safe-file://${response.imagePath}`);
         setEstimatedFontSize(response.estimatedFontSize || 16);
-        
-        const newAreas: Area[] = response.ocrData.map(block => ({
+
+        const newAreas: Area[] = response.ocrData.map((block: BackendOCRBlock) => ({
           id: block.id,
           bbox: block.bbox,
           sourceString: block.text,
           translatedString: block.translatedText || block.text,
-          style: { 
-            fontSize: response.estimatedFontSize || 16,
-            backgroundColor: 'rgba(255, 255, 255, 0.0)', 
-            color: '#FFFFFF', 
+          style: {
+            color: block.color || '#FFFFFF',
+            backgroundColor: block.backgroundColor || 'rgba(255, 255, 255, 0)',
+            fontSize: block.fontSize || response.estimatedFontSize || 16,
             fontFamily: 'Inter, sans-serif',
             fontWeight: 'normal',
             fontStyle: 'normal',
@@ -61,6 +68,7 @@ function ToolPageContent() {
             textAlign: 'left',
           }
         }));
+        console.log('tool/page.tsx: Processed newAreas:', JSON.stringify(newAreas, null, 2));
         setAreas(newAreas);
       }
     } catch (e: any) {
@@ -72,11 +80,7 @@ function ToolPageContent() {
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      processFile(file);
-    } else {
-      setFileName(null);
-    }
+    if (file) processFile(file);
   };
 
   const handleDragOver = (event: React.DragEvent<HTMLLabelElement>) => {
@@ -100,55 +104,51 @@ function ToolPageContent() {
       processFile(file);
     } else {
       setError("Invalid file type. Please drop an image.");
-      setFileName(null);
     }
   };
-  
+
   useEffect(() => {
     const handlePaste = (event: ClipboardEvent) => {
-      if (isLoading || isPartialScanning) return; 
-
+      if (isLoading || isPartialScanning) return;
       const items = event.clipboardData?.items;
       if (items) {
         for (let i = 0; i < items.length; i++) {
           if (items[i].type.indexOf('image') !== -1) {
             const file = items[i].getAsFile();
             if (file) {
-              event.preventDefault(); 
+              event.preventDefault();
               processFile(file);
+              break;
             }
-            break; 
           }
         }
       }
     };
-
     document.addEventListener('paste', handlePaste);
-    return () => {
-      document.removeEventListener('paste', handlePaste);
-    };
+    return () => document.removeEventListener('paste', handlePaste);
   }, [isLoading, isPartialScanning]);
 
   const handleNewAreaSelected = async (bbox: [number, number, number, number]) => {
-    if (!originalImageFile) { 
+    if (!backgroundImageUrl) {
       setError("Original image not found for partial scan. Please upload an image first.");
       return;
     }
     setIsPartialScanning(true);
     setError(null);
     try {
-      const newBlock = await mockPartialScanIPCService();
-      
-      if (newBlock) {
+      const originalPath = decodeURIComponent(backgroundImageUrl.replace('safe-file://', ''));
+      const newBlock = await ipcService.partial(originalPath, bbox) as BackendOCRBlock | null;
+
+      if (newBlock && newBlock.id) {
         const newArea: Area = {
           id: newBlock.id,
-          bbox: bbox, 
+          bbox: bbox,
           sourceString: newBlock.text,
           translatedString: newBlock.translatedText || newBlock.text,
           style: {
-            fontSize: estimatedFontSize || 16, 
-            backgroundColor: 'rgba(139, 92, 246, 0.1)',
-            color: '#FFFFFF', 
+            color: newBlock.color || '#FFFFFF',
+            backgroundColor: newBlock.backgroundColor || 'rgba(139, 92, 246, 0.1)',
+            fontSize: newBlock.fontSize || estimatedFontSize || 16,
             fontFamily: 'Inter, sans-serif',
             fontWeight: 'normal',
             fontStyle: 'normal',
@@ -156,8 +156,8 @@ function ToolPageContent() {
             textAlign: 'left',
           }
         };
-        setAreas((prevAreas: Area[]) => [...prevAreas, newArea]);
-        setSelectedAreaId(newArea.id);
+        setAreas((prevAreas) => [...prevAreas, newArea]);
+        setSelectedAreaIds([newArea.id]);
       } else {
         setError("Partial scan did not return a new block.");
       }
@@ -171,9 +171,9 @@ function ToolPageContent() {
   return (
     <div className="flex flex-col items-center p-4 md:p-6 w-full">
       <div className={`mb-6 w-full max-w-lg bg-gray-800 p-6 rounded-xl shadow-xl transition-all duration-300 ${isDraggingOver ? 'ring-4 ring-brand-blue ring-offset-2 ring-offset-gray-900' : ''}`}>
-        <label 
-          htmlFor="imageUpload" 
-          className={`flex flex-col items-center justify-center w-full h-64 border-2  border-dashed rounded-lg cursor-pointer transition-colors ${isDraggingOver ? 'border-brand-blue bg-gray-600' : 'border-gray-600 bg-gray-700 hover:bg-gray-600'}`}
+        <label
+          htmlFor="imageUpload"
+          className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isDraggingOver ? 'border-brand-blue bg-gray-600' : 'border-gray-600 bg-gray-700 hover:bg-gray-600'}`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
@@ -200,13 +200,14 @@ function ToolPageContent() {
       {isPartialScanning && <p className="text-sm text-brand-green animate-pulse my-2">Processing selected area...</p>}
       {error && <p className="text-lg text-red-500 my-4">Error: {error}</p>}
 
-      {backgroundImageUrl && ( 
-        <div className="w-full flex justify-center items-center mt-4 relative"> 
-          <ImageCanvas onNewAreaSelect={handleNewAreaSelected} /> 
+      {backgroundImageUrl && (
+        <div className="w-full flex justify-center items-center mt-4 relative">
+          <EditorToolbar />
+          <ImageCanvas onNewAreaSelect={handleNewAreaSelected} />
           <TextEditor />
         </div>
       )}
-      
+
       {backgroundImageUrl && areas.length > 0 && (
         <ExportPro />
       )}

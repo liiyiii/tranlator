@@ -1,126 +1,162 @@
-// image-translator-new/src/components/ImageCanvas.tsx
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { fabric } from 'fabric';
 import { useEditorContext } from '@/contexts/EditorContext';
 import { Area } from '@/types';
+import ContextMenu from '@/components/ContextMenu';
 
 interface ImageCanvasProps {
   onNewAreaSelect: (bbox: [number, number, number, number]) => void;
 }
 
 const ImageCanvas: React.FC<ImageCanvasProps> = ({ onNewAreaSelect }) => {
-  const { 
-    areas, setAreas, 
-    selectedAreaId, setSelectedAreaId, 
-    backgroundImageUrl, 
-    setFabricCanvasInstance
+  const {
+    areas, setAreas,
+    selectedAreaIds, setSelectedAreaIds,
+    backgroundImageUrl,
+    setFabricCanvasInstance,
+    editorMode,
   } = useEditorContext();
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
-  const [displaySize, setDisplaySize] = useState({ width: 800, height: 600 });
+  const isProgrammaticSelection = useRef(false);
+  const [contextMenu, setContextMenu] = useState<{
+    show: boolean;
+    x: number;
+    y: number;
+    menuItems: any[];
+  }>({ show: false, x: 0, y: 0, menuItems: [] });
+
+  const handleSelection = useCallback((e: fabric.IEvent) => {
+    if (isProgrammaticSelection.current) {
+      isProgrammaticSelection.current = false;
+      return;
+    }
+    const selectedObjects = e.selected;
+    if (selectedObjects && selectedObjects.length > 0) {
+      const selectedIds = selectedObjects.map(obj => obj.data?.id).filter(id => id);
+      setSelectedAreaIds(selectedIds);
+    } else {
+      setSelectedAreaIds([]);
+    }
+  }, [setSelectedAreaIds]);
 
   useEffect(() => {
-    if (canvasRef.current) {
-      const canvas = new fabric.Canvas(canvasRef.current, {
-        width: displaySize.width,
-        height: displaySize.height,
-        backgroundColor: '#18181b',
-        selectionColor: 'rgba(99, 102, 241, 0.3)',
-        selectionBorderColor: '#8b5cf6',
-        selectionLineWidth: 2,
-        selectionDashArray: [6, 3],
-        stopContextMenu: true,
-      });
-      fabricCanvasRef.current = canvas;
-      setFabricCanvasInstance(canvas);
+    if (!canvasRef.current) return;
 
-      canvas.on('mouse:wheel', function (opt: fabric.IEvent<WheelEvent>) {
-        const delta = opt.e.deltaY;
-        let zoom = canvas.getZoom();
-        zoom *= 0.999 ** delta;
-        if (zoom > 20) zoom = 20;
-        if (zoom < 0.1) zoom = 0.1;
-        const point = new fabric.Point(opt.e.offsetX, opt.e.offsetY);
-        canvas.zoomToPoint(point, zoom);
-        opt.e.preventDefault();
-        opt.e.stopPropagation();
-      });
+    const canvasContainer = canvasRef.current.parentElement;
+    if (!canvasContainer) return;
 
-      let isPanning = false;
-      let isDrawingSelection = false;
-      let selectionRect: fabric.Rect | null = null;
-      let startX: number, startY: number;
-      let lastPosX: number, lastPosY: number;
+    const canvas = new fabric.Canvas(canvasRef.current, {
+      width: canvasContainer.clientWidth,
+      height: canvasContainer.clientHeight,
+      backgroundColor: '#18181b',
+      selectionColor: 'rgba(99, 102, 241, 0.3)',
+      selectionBorderColor: '#8b5cf6',
+      selectionLineWidth: 2,
+      selectionDashArray: [6, 3],
+      stopContextMenu: true,
+    });
+    fabricCanvasRef.current = canvas;
+    setFabricCanvasInstance(canvas);
 
-      canvas.on('mouse:down', function (opt: fabric.IEvent<MouseEvent>) {
-        const evt = opt.e;
-        const target = opt.target;
-        
-        if (evt.altKey === true || (target === null || target === undefined && !isDrawingSelection)) { 
+    // --- Complete mouse event listeners (your original logic) ---
+    canvas.on('mouse:wheel', function (opt: fabric.IEvent<WheelEvent>) {
+      const delta = opt.e.deltaY;
+      let zoom = canvas.getZoom();
+      zoom *= 0.999 ** delta;
+      if (zoom > 20) zoom = 20;
+      if (zoom < 0.1) zoom = 0.1;
+      const point = new fabric.Point(opt.e.offsetX, opt.e.offsetY);
+      canvas.zoomToPoint(point, zoom);
+      opt.e.preventDefault();
+      opt.e.stopPropagation();
+    });
+
+    let isPanning = false;
+    let isDrawingSelection = false;
+    let selectionRect: fabric.Rect | null = null;
+    let startX: number, startY: number;
+    let lastPosX: number, lastPosY: number;
+
+    canvas.on('mouse:down', function (opt: fabric.IEvent<MouseEvent>) {
+      const target = opt.target;
+
+      switch (editorMode) {
+        case 'pan':
           isPanning = true;
-          canvas.selection = false; 
-          lastPosX = evt.clientX;
-          lastPosY = evt.clientY;
-        } else if (target === null || target === undefined) {
+          canvas.selection = false;
+          lastPosX = opt.e.clientX;
+          lastPosY = opt.e.clientY;
+          break;
+        case 'select':
+          if (target) {
+            canvas.selection = true;
+          } else {
+            isDrawingSelection = true;
+            const pointer = canvas.getPointer(opt.e);
+            startX = pointer.x;
+            startY = pointer.y;
+            selectionRect = new fabric.Rect({
+              left: startX, top: startY, width: 0, height: 0,
+              fill: 'rgba(99, 102, 241, 0.3)',
+              stroke: '#8b5cf6', strokeWidth: 1,
+              strokeDashArray: [4, 2],
+              selectable: false, evented: false,
+            });
+            canvas.add(selectionRect);
+          }
+          break;
+        case 'create':
           isDrawingSelection = true;
-          const pointer = canvas.getPointer(evt);
+          const pointer = canvas.getPointer(opt.e);
           startX = pointer.x;
           startY = pointer.y;
           selectionRect = new fabric.Rect({
-            left: startX,
-            top: startY,
-            width: 0,
-            height: 0,
+            left: startX, top: startY, width: 0, height: 0,
             fill: 'rgba(139, 92, 246, 0.2)',
-            stroke: '#8b5cf6',
-            strokeWidth: 1,
+            stroke: '#8b5cf6', strokeWidth: 1,
             strokeDashArray: [4, 2],
-            selectable: false,
-            evented: false,
+            selectable: false, evented: false,
           });
           canvas.add(selectionRect);
-          canvas.requestRenderAll();
-        } else {
-          canvas.selection = true; 
-        }
-      });
+          break;
+      }
+    });
 
-      canvas.on('mouse:move', function (opt: fabric.IEvent<MouseEvent>) {
-        if (isPanning && canvas.viewportTransform) {
-          const e = opt.e;
-          const vpt = canvas.viewportTransform;
-          vpt[4] += e.clientX - lastPosX;
-          vpt[5] += e.clientY - lastPosY;
-          canvas.requestRenderAll();
-          lastPosX = e.clientX;
-          lastPosY = e.clientY;
-        } else if (isDrawingSelection && selectionRect) {
-          const pointer = canvas.getPointer(opt.e);
-          let width = pointer.x - startX;
-          let height = pointer.y - startY;
-          
-          selectionRect.set({ 
-            width: Math.abs(width), 
-            height: Math.abs(height),
-            left: width > 0 ? startX : pointer.x,
-            top: height > 0 ? startY : pointer.y,
-          });
-          canvas.requestRenderAll();
-        }
-      });
-      
-      canvas.on('mouse:up', function (opt: fabric.IEvent<MouseEvent>) {
-        if (isPanning) {
-          if (canvas.viewportTransform) canvas.setViewportTransform(canvas.viewportTransform);
-          isPanning = false;
-          canvas.selection = true;
-        } else if (isDrawingSelection && selectionRect) {
-          isDrawingSelection = false;
+    canvas.on('mouse:move', function (opt: fabric.IEvent<MouseEvent>) {
+      if (isPanning && canvas.viewportTransform) {
+        const e = opt.e;
+        const vpt = canvas.viewportTransform;
+        vpt[4] += e.clientX - lastPosX;
+        vpt[5] += e.clientY - lastPosY;
+        lastPosX = e.clientX;
+        lastPosY = e.clientY;
+      } else if (isDrawingSelection && selectionRect) {
+        const pointer = canvas.getPointer(opt.e);
+        let width = pointer.x - startX;
+        let height = pointer.y - startY;
+        selectionRect.set({
+          width: Math.abs(width), height: Math.abs(height),
+          left: width > 0 ? startX : pointer.x,
+          top: height > 0 ? startY : pointer.y,
+        });
+        canvas.requestRenderAll();
+      }
+    });
+
+    canvas.on('mouse:up', function (opt: fabric.IEvent<MouseEvent>) {
+      if (isPanning) {
+        if (canvas.viewportTransform) canvas.setViewportTransform(canvas.viewportTransform);
+        isPanning = false;
+        canvas.selection = true;
+      } else if (isDrawingSelection && selectionRect) {
+        isDrawingSelection = false;
+        if (editorMode === 'create') {
           const finalWidth = selectionRect.width || 0;
           const finalHeight = selectionRect.height || 0;
-          
           if (finalWidth > 5 && finalHeight > 5) {
             const newBBox: [number, number, number, number] = [
               selectionRect.left!,
@@ -130,201 +166,265 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ onNewAreaSelect }) => {
             ];
             onNewAreaSelect(newBBox);
           }
-          canvas.remove(selectionRect); 
-          selectionRect = null;
-          canvas.requestRenderAll();
         }
-      });
+        canvas.remove(selectionRect);
+        selectionRect = null;
+      }
+    });
 
-      const handleSelection = (e: fabric.IEvent) => {
-        if (e.selected && e.selected.length === 1 && e.selected[0].data?.id) {
-          setSelectedAreaId(e.selected[0].data.id);
-        } else {
-          setSelectedAreaId(null);
-        }
-      };
-      canvas.on('selection:created', handleSelection);
-      canvas.on('selection:updated', handleSelection);
-      canvas.on('selection:cleared', () => setSelectedAreaId(null));
+    canvas.on('selection:created', handleSelection);
+    canvas.on('selection:updated', handleSelection);
+    canvas.on('selection:cleared', () => setSelectedAreaIds([]));
 
-      canvas.on('object:modified', (e: fabric.IEvent) => {
-        const modifiedObject = e.target;
-        if (modifiedObject && modifiedObject.data?.id && modifiedObject.data?.type === 'ocrTextBox') {
-          const areaId = modifiedObject.data.id;
-          const fabricTextbox = modifiedObject as fabric.Textbox;
-
-          setAreas((prevAreas: Area[]) => 
-            prevAreas.map((area: Area) => { 
-              if (area.id === areaId) {
-                const newWidth = fabricTextbox.getScaledWidth();
-                const newHeight = fabricTextbox.getScaledHeight();
-                let newFontSize = area.style.fontSize;
-                
-                return { 
-                  ...area, 
-                  translatedString: fabricTextbox.text || '',
-                  bbox: [
-                    fabricTextbox.left!,
-                    fabricTextbox.top!,
-                    fabricTextbox.left! + newWidth, 
-                    fabricTextbox.top! + newHeight
-                  ],
-                  style: {
-                    ...area.style,
-                    fontSize: newFontSize,
-                    textAlign: fabricTextbox.textAlign as Area['style']['textAlign'] || area.style.textAlign,
-                  }
-                };
+    canvas.on('object:modified', (e: fabric.IEvent) => {
+      const modifiedObject = e.target;
+      if (modifiedObject && modifiedObject.data?.id && modifiedObject.data?.type === 'ocrTextBox') {
+        const areaId = modifiedObject.data.id;
+        const fabricTextbox = modifiedObject as fabric.Textbox;
+        setAreas((prevAreas: Area[]) => prevAreas.map((area: Area) => {
+          if (area.id === areaId) {
+            return {
+              ...area,
+              translatedString: fabricTextbox.text || '',
+              bbox: [
+                fabricTextbox.left!, fabricTextbox.top!,
+                fabricTextbox.left! + fabricTextbox.getScaledWidth(),
+                fabricTextbox.top! + fabricTextbox.getScaledHeight()
+              ],
+              style: {
+                ...area.style,
+                textAlign: fabricTextbox.textAlign as Area['style']['textAlign'] || area.style.textAlign,
               }
-              return area;
-            })
-          );
-        }
-      });
-      
-      canvas.on('text:changed', (e: fabric.IEvent) => {
-        const changedObject = e.target as fabric.Textbox;
-        if (changedObject && changedObject.data?.id && changedObject.data?.type === 'ocrTextBox') {
-          const id = changedObject.data.id;
-          setAreas((prevAreas: Area[]) => prevAreas.map((area: Area) => 
-            area.id === id 
-              ? { ...area, translatedString: changedObject.text || '' } 
-              : area
-          ));
-        }
-      });
+            };
+          }
+          return area;
+        }));
+      }
+    });
 
-      return () => {
-        setFabricCanvasInstance(null);
-        canvas.dispose();
-        fabricCanvasRef.current = null;
-      };
-    }
-  }, [displaySize, setSelectedAreaId, setAreas, setFabricCanvasInstance]); 
+    canvas.on('text:changed', (e) => {
+      const changedObject = e.target as fabric.Textbox;
+      if (changedObject?.isEditing) {
+        return;
+      }
+      if (changedObject && changedObject.data?.id && changedObject.data?.type === 'ocrTextBox') {
+        const id = changedObject.data.id;
+        setAreas((prevAreas: Area[]) => {
+          const newAreas = [...prevAreas];
+          const areaIndex = newAreas.findIndex(a => a.id === id);
+          if (areaIndex !== -1) {
+            const newArea = { ...newAreas[areaIndex] };
+            newArea.translatedString = changedObject.text || '';
+            newArea.bbox = [
+              changedObject.left!,
+              changedObject.top!,
+              changedObject.left! + (changedObject.width || 0),
+              changedObject.top! + (changedObject.height || 0)
+            ];
+            newAreas[areaIndex] = newArea;
+          }
+          return newAreas;
+        });
+      }
+    });
 
-  useEffect(() => {
-    const canvas = fabricCanvasRef.current;
-    if (canvas && backgroundImageUrl) {
+    canvas.on('composition:update', (e) => {
+      const changedObject = e.target as fabric.Textbox;
+      if (changedObject && changedObject.data?.id && changedObject.data?.type === 'ocrTextBox') {
+        const id = changedObject.data.id;
+        setTimeout(() => {
+          setAreas((prevAreas: Area[]) => {
+            const newAreas = [...prevAreas];
+            const areaIndex = newAreas.findIndex(a => a.id === id);
+            if (areaIndex !== -1) {
+              const newArea = { ...newAreas[areaIndex] };
+              newArea.translatedString = changedObject.text || '';
+              newArea.bbox = [
+                changedObject.left!,
+                changedObject.top!,
+                changedObject.left! + (changedObject.width || 0),
+                changedObject.top! + (changedObject.height || 0)
+              ];
+              newAreas[areaIndex] = newArea;
+            }
+            return newAreas;
+          });
+        }, 10);
+      }
+    });
+
+    // --- Background image loading ---
+    if (backgroundImageUrl) {
       fabric.Image.fromURL(backgroundImageUrl, (img) => {
-        canvas.backgroundImage = undefined;
-        canvas.renderAll();
-        
-        const MAX_CANVAS_WIDTH = 1200; 
-        const MAX_CANVAS_HEIGHT = 800;
-        const MIN_CANVAS_WIDTH = 300;
-        const MIN_CANVAS_HEIGHT = 200;
+        if (!fabricCanvasRef.current) {
+          return;
+        }
 
-        let newWidth = img.width || MAX_CANVAS_WIDTH;
-        let newHeight = img.height || MAX_CANVAS_HEIGHT;
-        const imgAspectRatio = newWidth / newHeight;
-        const maxCanvasAspectRatio = MAX_CANVAS_WIDTH / MAX_CANVAS_HEIGHT;
+        const currentCanvas = fabricCanvasRef.current;
+        currentCanvas.backgroundImage = undefined;
+        currentCanvas.renderAll();
 
-        if (imgAspectRatio > maxCanvasAspectRatio) {
-            if (newWidth > MAX_CANVAS_WIDTH) {
-                newWidth = MAX_CANVAS_WIDTH;
-                newHeight = newWidth / imgAspectRatio;
-            }
-        } else {
-            if (newHeight > MAX_CANVAS_HEIGHT) {
-                newHeight = MAX_CANVAS_HEIGHT;
-                newWidth = newHeight * imgAspectRatio;
-            }
+        if (canvas.width) {
+          img.scaleToWidth(canvas.width);
         }
-        
-        newWidth = Math.max(newWidth, MIN_CANVAS_WIDTH);
-        newHeight = Math.max(newHeight, MIN_CANVAS_HEIGHT);
-        
-        if (displaySize.width !== newWidth || displaySize.height !== newHeight) {
-            setDisplaySize({ width: Math.round(newWidth), height: Math.round(newHeight) });
+        if (canvas.height && img.getScaledHeight() > canvas.height) {
+            img.scaleToHeight(canvas.height);
         }
-        
-        img.scaleToWidth(Math.round(newWidth));
-        if(img.getScaledHeight() > Math.round(newHeight)) {
-            img.scaleToHeight(Math.round(newHeight));
-        }
-        
-        canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
+
+        currentCanvas.setBackgroundImage(img, currentCanvas.renderAll.bind(currentCanvas), {
           selectable: false, evented: false, originX: 'left', originY: 'top',
         });
-        canvas.renderAll();
       }, { crossOrigin: 'anonymous' });
-    } else if (canvas) {
-      canvas.clear(); 
+    } else {
+      canvas.clear();
       canvas.backgroundImage = undefined;
       canvas.renderAll();
-      if (displaySize.width !== 800 || displaySize.height !== 600) {
-          setDisplaySize({ width: 800, height: 600 });
-      }
     }
-  }, [backgroundImageUrl]);
 
-  useEffect(() => {
-    const canvas = fabricCanvasRef.current;
-    if (canvas) {
-      canvas.getObjects().filter((obj: fabric.Object) => obj.data?.type === 'ocrTextBox').forEach((obj: fabric.Object) => canvas.remove(obj));
+    // --- [Restored] Text area rendering ---
+    canvas.getObjects().filter((obj: fabric.Object) => obj.data?.type === 'ocrTextBox').forEach((obj: fabric.Object) => canvas.remove(obj));
+    areas.forEach((area: Area) => {
+      const textboxOptions: fabric.ITextboxOptions = {
+        left: area.bbox[0], top: area.bbox[1],
+        width: area.bbox[2] - area.bbox[0], height: area.bbox[3] - area.bbox[1],
+        fontSize: area.style.fontSize, fill: area.style.color,
+        backgroundColor: area.style.backgroundColor, fontFamily: area.style.fontFamily,
+        fontWeight: area.style.fontWeight, fontStyle: area.style.fontStyle,
+        textAlign: area.style.textAlign as fabric.Textbox["textAlign"],
+        underline: area.style.textDecoration === 'underline',
+        linethrough: area.style.textDecoration === 'line-through',
+        overline: area.style.textDecoration === 'overline',
+        data: { id: area.id, type: 'ocrTextBox' },
+      };
+      const textbox = new fabric.Textbox(area.translatedString || area.sourceString || "Text", textboxOptions);
 
-      areas.forEach((area: Area) => {
-        const textboxOptions: fabric.ITextboxOptions = {
-          left: area.bbox[0],
-          top: area.bbox[1],
-          width: area.bbox[2] - area.bbox[0],
-          height: area.bbox[3] - area.bbox[1],
-          fontSize: area.style.fontSize,
-          fill: area.style.color,
-          backgroundColor: area.style.backgroundColor,
-          fontFamily: area.style.fontFamily,
-          fontWeight: area.style.fontWeight,
-          fontStyle: area.style.fontStyle,
-          textAlign: area.style.textAlign as fabric.Textbox["textAlign"],
-          underline: area.style.textDecoration === 'underline',
-          linethrough: area.style.textDecoration === 'line-through',
-          overline: area.style.textDecoration === 'overline',
-          data: { id: area.id, type: 'ocrTextBox' },
-        };
-        const textbox = new fabric.Textbox(area.translatedString || area.sourceString || "Text", textboxOptions);
-        
-        if (selectedAreaId === area.id) {
-            textbox.set({ borderColor: '#a78bfa', borderScaleFactor: 2, borderDashArray: undefined });
-        } else {
-            textbox.set({ borderColor: '#8b5cf6', borderScaleFactor: 1.5, borderDashArray: [6,3] });
-        }
-
-        canvas.add(textbox);
-      });
-      canvas.renderAll();
-    }
-  }, [areas, selectedAreaId, backgroundImageUrl]);
-
-  useEffect(() => {
-    const canvas = fabricCanvasRef.current;
-    if (canvas) {
-      const activeObject = canvas.getActiveObject();
-      if (selectedAreaId) {
-        if (activeObject?.data?.id !== selectedAreaId) {
-          const objectToSelect = canvas.getObjects().find((obj: fabric.Object) => obj.data?.id === selectedAreaId && obj.data?.type === 'ocrTextBox');
-          if (objectToSelect) {
-            canvas.setActiveObject(objectToSelect);
-          }
-        }
+      if (selectedAreaIds.includes(area.id)) {
+          textbox.set({ borderColor: '#a78bfa', borderScaleFactor: 2, borderDashArray: undefined });
       } else {
-        if (activeObject) {
+          textbox.set({ borderColor: '#8b5cf6', borderScaleFactor: 1.5, borderDashArray: [6,3] });
+      }
+      canvas.add(textbox);
+    });
+
+    // --- [Restored] Object selection state handling ---
+    // This is now handled in a separate useEffect
+    canvas.renderAll();
+
+    const resizeObserver = new ResizeObserver(entries => {
+      const entry = entries[0];
+      const { width, height } = entry.contentRect;
+      canvas.setWidth(width);
+      canvas.setHeight(height);
+      canvas.renderAll();
+    });
+
+    resizeObserver.observe(canvasContainer);
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeObject = fabricCanvasRef.current?.getActiveObject();
+      if (activeObject && (activeObject as fabric.Textbox).isEditing) {
+        // Let the default behavior handle text deletion
+        return;
+      }
+
+      if ((e.key === 'Delete' || e.key === 'Backspace') && e.target === document.body) {
+        if (selectedAreaIds.length > 0) {
+          setAreas(areas.filter(a => !selectedAreaIds.includes(a.id)));
+          setSelectedAreaIds([]);
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    // --- Cleanup function ---
+    return () => {
+      resizeObserver.disconnect();
+      document.removeEventListener('keydown', handleKeyDown);
+      setFabricCanvasInstance(null);
+      if (fabricCanvasRef.current) {
+        fabricCanvasRef.current.dispose();
+        fabricCanvasRef.current = null;
+      }
+    };
+  }, [backgroundImageUrl, areas, onNewAreaSelect, setAreas, setFabricCanvasInstance, handleSelection, editorMode]);
+
+  useEffect(() => {
+    const canvas = fabricCanvasRef.current;
+    if (!canvas) return;
+
+    const activeSelection = canvas.getActiveObject();
+    const activeIds = activeSelection instanceof fabric.ActiveSelection
+      ? activeSelection.getObjects().map(o => o.data.id)
+      : (activeSelection ? [activeSelection.data.id] : []);
+
+    if (JSON.stringify(activeIds.sort()) !== JSON.stringify(selectedAreaIds.sort())) {
+      isProgrammaticSelection.current = true;
+      if (selectedAreaIds.length === 0) {
+        canvas.discardActiveObject();
+      } else {
+        const objectsToSelect = canvas.getObjects().filter(obj =>
+          obj.data?.type === 'ocrTextBox' && selectedAreaIds.includes(obj.data.id)
+        );
+        if (objectsToSelect.length > 0) {
+          if (objectsToSelect.length === 1) {
+            canvas.setActiveObject(objectsToSelect[0]);
+          } else {
+            const sel = new fabric.ActiveSelection(objectsToSelect, { canvas: canvas });
+            canvas.setActiveObject(sel);
+          }
+        } else {
           canvas.discardActiveObject();
         }
       }
-      canvas.renderAll();
+      canvas.requestRenderAll();
     }
-  }, [selectedAreaId]);
+  }, [selectedAreaIds]);
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const fabricCanvas = fabricCanvasRef.current;
+    if (!fabricCanvas) return;
+
+    const pointer = fabricCanvas.getPointer(e.nativeEvent);
+    const target = fabricCanvas.findTarget(e.nativeEvent, false);
+
+    if (target && target.data?.id && selectedAreaIds.includes(target.data.id)) {
+      const bringToFront = () => {
+        const newAreas = [...areas];
+        const selected = newAreas.filter(a => selectedAreaIds.includes(a.id));
+        const others = newAreas.filter(a => !selectedAreaIds.includes(a.id));
+        setAreas([...others, ...selected]);
+      };
+
+      const sendToBack = () => {
+        const newAreas = [...areas];
+        const selected = newAreas.filter(a => selectedAreaIds.includes(a.id));
+        const others = newAreas.filter(a => !selectedAreaIds.includes(a.id));
+        setAreas([...selected, ...others]);
+      };
+
+      setContextMenu({
+        show: true,
+        x: e.clientX,
+        y: e.clientY,
+        menuItems: [
+          { label: 'Bring to front', action: bringToFront },
+          { label: 'Send to back', action: sendToBack },
+        ],
+      });
+    } else {
+      setContextMenu({ show: false, x: 0, y: 0, menuItems: [] });
+    }
+  };
 
   return (
-    <div 
-      style={{ 
-        width: displaySize.width, 
-        height: displaySize.height, 
-        border: '1px solid #374151'
-      }}
-      className="mx-auto shadow-2xl rounded-md overflow-hidden"
+    <div
+      className="w-full h-full aspect-video mx-auto shadow-2xl rounded-md overflow-hidden border border-gray-700"
+      onContextMenu={handleContextMenu}
     >
-      <canvas ref={canvasRef} />
+      <canvas ref={canvasRef} className="w-full h-full" />
+      <ContextMenu {...contextMenu} onClose={() => setContextMenu({ ...contextMenu, show: false })} />
     </div>
   );
 };

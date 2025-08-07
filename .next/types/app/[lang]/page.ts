@@ -1,4 +1,4 @@
-// File: C:\Users\Atman\stage2\next.js-\image-translator-new\src\app\[lang]\page.tsx
+// File: C:\Users\Atman\imagetrans\src\app\[lang]\page.tsx
 import * as entry from '../../../../src/app/[lang]/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

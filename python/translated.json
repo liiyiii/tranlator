@@ -1,0 +1,422 @@
+[
+  {
+    "text": "Data Storytelling",
+    "bbox": [
+      105.0,
+      24.0,
+      422.0,
+      63.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "数据讲故事"
+  },
+  {
+    "text": "Example of use\ncases",
+    "bbox": [
+      400.0,
+      77.0,
+      504.0,
+      103.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "示例用法\n案例"
+  },
+  {
+    "text": "Types of Chart",
+    "bbox": [
+      128.0,
+      82.0,
+      221.0,
+      95.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "图表类型"
+  },
+  {
+    "text": "When to use it",
+    "bbox": [
+      256.0,
+      82.0,
+      352.0,
+      95.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "何时使用它"
+  },
+  {
+    "text": "chart",
+    "bbox": [
+      53.0,
+      84.0,
+      91.0,
+      95.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "图表"
+  },
+  {
+    "text": "Compare quantities\nacross Categories",
+    "bbox": [
+      252.0,
+      122.0,
+      354.0,
+      148.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "比较各类别数量"
+  },
+  {
+    "text": "Compare sales of\ndifferent products.",
+    "bbox": [
+      407.0,
+      122.0,
+      499.0,
+      145.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "比较不同产品的销售情况。"
+  },
+  {
+    "text": "Bar Chart",
+    "bbox": [
+      145.0,
+      126.0,
+      205.0,
+      138.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "柱状图"
+  },
+  {
+    "text": "Display the growth of\nwebsite traffic over a\nyear.",
+    "bbox": [
+      398.0,
+      171.0,
+      507.0,
+      207.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "显示一年内网站流量的增长情况。"
+  },
+  {
+    "text": "Show Trends over\ntime",
+    "bbox": [
+      259.0,
+      180.0,
+      347.0,
+      202.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "显示随着时间的趋势"
+  },
+  {
+    "text": "Line Chart",
+    "bbox": [
+      143.0,
+      183.0,
+      207.0,
+      194.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "折线图"
+  },
+  {
+    "text": "Highlight proportions\nand percentages",
+    "bbox": [
+      251.0,
+      236.0,
+      356.0,
+      258.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "突出比例和百分比"
+  },
+  {
+    "text": "lllustrate the breakdown\nof expenses in a budget.",
+    "bbox": [
+      392.0,
+      236.0,
+      513.0,
+      258.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "展示预算中费用的分解。"
+  },
+  {
+    "text": "Pie Chart",
+    "bbox": [
+      146.0,
+      241.0,
+      204.0,
+      252.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "饼图"
+  },
+  {
+    "text": "Identify correlations\nbetween marketing\nspend and ROI.",
+    "bbox": [
+      402.0,
+      284.0,
+      503.0,
+      320.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "识别营销支出与ROI之间的关联"
+  },
+  {
+    "text": "Representrelationships\nbetween variables",
+    "bbox": [
+      245.0,
+      291.0,
+      362.0,
+      315.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "表示变量之间的关系"
+  },
+  {
+    "text": "Scatter Plot",
+    "bbox": [
+      139.0,
+      296.0,
+      211.0,
+      308.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "散点图"
+  },
+  {
+    "text": "Show the age\ndistribution of survey\nrespondents.",
+    "bbox": [
+      399.0,
+      343.0,
+      505.0,
+      379.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "展示调查响应者的年龄分布。"
+  },
+  {
+    "text": "Visualize the\ndistribution of data.",
+    "bbox": [
+      255.0,
+      350.0,
+      352.0,
+      373.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "可视化数据的分布。"
+  },
+  {
+    "text": "Histoaram",
+    "bbox": [
+      142.0,
+      357.0,
+      208.0,
+      368.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "\"Histoaram\""
+  },
+  {
+    "text": "Evaluate the performance\nof a product in various\nareas.",
+    "bbox": [
+      387.0,
+      401.0,
+      517.0,
+      436.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "评估产品的各项性能。"
+  },
+  {
+    "text": "Compare multiple\ncategories across\ndimensions.",
+    "bbox": [
+      257.0,
+      403.0,
+      350.0,
+      438.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "比较多个类别\n在不同维度上。"
+  },
+  {
+    "text": "RadarChart",
+    "bbox": [
+      137.0,
+      415.0,
+      213.0,
+      425.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "雷达图"
+  },
+  {
+    "text": "Visualize\ngeospatial data",
+    "bbox": [
+      262.0,
+      463.0,
+      344.0,
+      488.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "可视化\n空间数据"
+  },
+  {
+    "text": "Display regional sales\nperformance on a map.",
+    "bbox": [
+      393.0,
+      464.0,
+      510.0,
+      488.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "在地图上显示区域销售绩效。"
+  },
+  {
+    "text": "Map",
+    "bbox": [
+      159.0,
+      471.0,
+      190.0,
+      485.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "地图"
+  },
+  {
+    "text": "Visualize data density\nand patterns especially\nin large data set",
+    "bbox": [
+      245.0,
+      514.0,
+      361.0,
+      549.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "可视化数据密度\n和模式尤其是\n在大型数据集里"
+  },
+  {
+    "text": "Identifying hotspots of\ncustomer activity in a\nshopping mall.",
+    "bbox": [
+      396.0,
+      514.0,
+      509.0,
+      548.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "在购物中心识别顾客活动热点。"
+  },
+  {
+    "text": "Heatmap",
+    "bbox": [
+      143.0,
+      522.0,
+      206.0,
+      539.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "heatmap"
+  },
+  {
+    "text": "Compare revenue,cost\nand profit in three\ndimensions.",
+    "bbox": [
+      394.0,
+      573.0,
+      511.0,
+      608.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "比较收入、成本和利润在三个维度上。"
+  },
+  {
+    "text": "Represent three-\ndimensionaldata",
+    "bbox": [
+      259.0,
+      580.0,
+      347.0,
+      602.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "三维数据代表"
+  },
+  {
+    "text": "Bubble Chart",
+    "bbox": [
+      134.0,
+      585.0,
+      216.0,
+      595.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "气泡图"
+  },
+  {
+    "text": "Emphasize specific\nparts within a whole",
+    "bbox": [
+      252.0,
+      632.0,
+      354.0,
+      658.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "强调整体中的特定部分"
+  },
+  {
+    "text": "Show the distribution of\nmarketing expenditures.",
+    "bbox": [
+      390.0,
+      635.0,
+      514.0,
+      660.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "展示营销支出的分布。"
+  },
+  {
+    "text": "Donut Chart",
+    "bbox": [
+      137.0,
+      641.0,
+      213.0,
+      652.0
+    ],
+    "type": "Square",
+    "points": null,
+    "translated": "甜甜圈图"
+  }
+]
